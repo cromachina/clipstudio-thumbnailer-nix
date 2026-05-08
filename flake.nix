@@ -22,6 +22,7 @@
           hash = "sha256-u3lahWBz8f11abnKYaqwjgJZ9zte9tTV7rPVpoeaBJw=";
         };
         nativeBuildInputs = [ pkgs.makeWrapper ];
+        phases = [ "unpackPhase" "installPhase" ];
         installPhase = ''
           mkdir -p $out/bin
           cp ${script} $out/bin/.${script}-bash-wrapped.sh
@@ -29,6 +30,9 @@
           bash $out/bin/.${script}-bash-wrapped.sh \$@" > $out/bin/${script}
           chmod a+x $out/bin/${script}
           wrapProgram $out/bin/${script} --prefix PATH : ${pkgs.lib.makeBinPath deps}
+
+          mkdir -p $out/share/mime/packages
+          cp $src/clipstudio.xml $out/share/mime/packages/
         '';
       };
       thumbnailer = pkgs.writeTextFile {
@@ -37,11 +41,14 @@
         text = ''
           [Thumbnailer Entry]
           Exec=${clipstudio-thumbnailer-lib}/bin/${script} %i %o
-          MimeType=application/x-clip;image/x-clip;application/octet-stream;application/x-wine-extension-clip;
+          MimeType=application/x-clip;image/x-clip;application/octet-stream;
         '';
       };
       in {
-        packages.default = thumbnailer;
+        packages.default = pkgs.symlinkJoin {
+          name = "clipstudio-thumbnailer";
+          paths = [ clipstudio-thumbnailer-lib thumbnailer ];
+        };
       }
   );
 }
